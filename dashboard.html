@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Survey Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --line:#262b36; --fg:#e8eaed; --muted:#9aa3b2; --accent:#5b8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:1100px; margin:0 auto; padding:24px 16px 80px; }
+  .top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:8px; }
+  h1 { font-size:22px; margin:0; }
+  .stats { color:var(--muted); }
+  .stats b { color:var(--fg); font-size:20px; }
+  .bar { display:flex; gap:10px; align-items:center; margin:14px 0 22px; flex-wrap:wrap; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:9px 16px; font:600 14px/1 inherit; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--fg); }
+  a { color:var(--accent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .card h3 { font-size:14px; margin:0 0 4px; }
+  .card .qid { color:var(--accent); font-weight:700; }
+  .card .meta { color:var(--muted); font-size:12px; margin-bottom:8px; }
+  .chartbox { position:relative; height:260px; }
+  .empty { text-align:center; color:var(--muted); padding:80px 16px; }
+  .live { font-size:12px; color:var(--muted); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#1e7d4e; margin-right:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Photographer Survey — Live Results</h1>
+    <div class="stats"><b id="total">0</b> responses</div>
+  </div>
+  <div class="bar">
+    <button id="refresh">Refresh</button>
+    <button class="ghost" id="toggleAuto"><span class="dot"></span><span id="autoLabel">Auto-refresh on</span></button>
+    <button class="ghost" id="csv">Download CSV</button>
+    <a href="index.html">&larr; Back to form</a>
+    <span class="live" id="updated"></span>
+  </div>
+  <div id="content" class="grid"></div>
+  <div id="empty" class="empty" hidden>No responses yet. Share the form link to start collecting.</div>
+</div>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script>
+(function () {
+  var S = window.SURVEY;
+  var charts = {};
+  var rows = [];
+  var autoTimer = null;
+  var COLORS = ["#5b8cff","#36c5a0","#ffb454","#ff7a7a","#b18cff","#5ec0ff","#ff9ad1","#9fe06a","#ffd166","#7aa2ff"];
+
+  function normalize(v) {
+    // collapse "Other: free text" into "Other" for aggregation
+    if (typeof v === "string" && v.indexOf("Other:") === 0) return "Other";
+    return v;
+  }
+
+  function aggregate(q) {
+    var counts = {};
+    q.options.forEach(function (o) { counts[o] = 0; });
+    rows.forEach(function (r) {
+      var a = r.answers ? r.answers[q.id] : undefined;
+      if (a == null || a === "") return;
+      var list = Array.isArray(a) ? a : [a];
+      list.forEach(function (v) {
+        var key = normalize(v);
+        if (!(key in counts)) counts[key] = 0;
+        counts[key]++;
+      });
+    });
+    return counts;
+  }
+
+  function render() {
+    document.getElementById("total").textContent = rows.length;
+    document.getElementById("empty").hidden = rows.length > 0;
+    document.getElementById("content").hidden = rows.length === 0;
+    document.getElementById("updated").textContent = "updated " + new Date().toLocaleTimeString();
+
+    var content = document.getElementById("content");
+    if (!content.dataset.built) {
+      S.questions.forEach(function (q, i) {
+        var card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML =
+          '<h3><span class="qid">' + q.id + '</span> · ' + escapeHtml(q.text) + '</h3>' +
+          '<div class="meta">' + (q.type === "multi" ? (q.max ? "select up to " + q.max : "select all") : "select one") + '</div>' +
+          '<div class="chartbox"><canvas id="c_' + q.id + '"></canvas></div>';
+        content.appendChild(card);
+      });
+      content.dataset.built = "1";
+    }
+
+    S.questions.forEach(function (q) {
+      var counts = aggregate(q);
+      var labels = Object.keys(counts);
+      var data = labels.map(function (l) { return counts[l]; });
+      var ctx = document.getElementById("c_" + q.id);
+      if (charts[q.id]) {
+        charts[q.id].data.labels = labels;
+        charts[q.id].data.datasets[0].data = data;
+        charts[q.id].update();
+      } else {
+        charts[q.id] = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: labels.map(function (_, i) { return COLORS[i % COLORS.length]; }),
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: "#9aa3b2", precision: 0 }, grid: { color: "#262b36" } },
+              y: { ticks: { color: "#e8eaed" }, grid: { display: false } }
+            }
+          }
+        });
+      }
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function load() {
+    if (!window.SURVEY_ENDPOINT || /PASTE_YOUR/.test(window.SURVEY_ENDPOINT)) {
+      document.getElementById("empty").hidden = false;
+      document.getElementById("empty").textContent = "Endpoint not configured (see README step 4).";
+      return;
+    }
+    fetch(window.SURVEY_ENDPOINT, { method: "GET" })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        rows = (json && json.responses) || [];
+        render();
+      })
+      .catch(function (e) {
+        document.getElementById("updated").textContent = "load error: " + e.message;
+      });
+  }
+
+  function toCsv() {
+    var headers = ["submittedAt"].concat(S.questions.map(function (q) { return q.id; }));
+    var lines = [headers.join(",")];
+    rows.forEach(function (r) {
+      var cells = [r.submittedAt || ""];
+      S.questions.forEach(function (q) {
+        var v = r.answers ? r.answers[q.id] : "";
+        if (Array.isArray(v)) v = v.join(" | ");
+        v = (v == null ? "" : String(v)).replace(/"/g, '""');
+        cells.push('"' + v + '"');
+      });
+      lines.push(cells.join(","));
+    });
+    var blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "survey_responses.csv";
+    a.click();
+  }
+
+  function setAuto(on) {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    document.getElementById("autoLabel").textContent = on ? "Auto-refresh on" : "Auto-refresh off";
+    document.querySelector(".dot").style.background = on ? "#1e7d4e" : "#666";
+    if (on) autoTimer = setInterval(load, 15000);
+  }
+
+  document.getElementById("refresh").addEventListener("click", load);
+  document.getElementById("csv").addEventListener("click", toCsv);
+  document.getElementById("toggleAuto").addEventListener("click", function () {
+    setAuto(!autoTimer);
+  });
+
+  load();
+  setAuto(true);
+})();
+</script>
+</body>
+</html>

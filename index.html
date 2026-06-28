@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Photographer Workflow Survey</title>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --line:#262b36; --fg:#e8eaed; --muted:#9aa3b2; --accent:#5b8cff; --accent2:#2c4a8a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:720px; margin:0 auto; padding:24px 16px 80px; }
+  header h1 { font-size:24px; margin:0 0 6px; }
+  header p { color:var(--muted); margin:0 0 24px; }
+  .q { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:0 0 16px; }
+  .q .label { font-weight:600; margin-bottom:12px; }
+  .q .num { color:var(--accent); font-weight:700; margin-right:6px; }
+  .opt { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; }
+  .opt:hover { background:#202533; }
+  .opt input { width:18px; height:18px; accent-color:var(--accent); flex:0 0 auto; }
+  .other-text { margin:6px 0 0 38px; width:calc(100% - 38px); background:var(--bg); border:1px solid var(--line); color:var(--fg); border-radius:8px; padding:8px 10px; font:inherit; }
+  .other-text:disabled { opacity:.4; }
+  .hint { color:var(--muted); font-size:13px; margin-top:6px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:14px 22px; font:600 16px/1 inherit; cursor:pointer; width:100%; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1e7d4e; color:#fff; padding:12px 20px; border-radius:10px; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .done { text-align:center; padding:60px 16px; }
+  .done h2 { font-size:22px; }
+  .err { color:#ff8080; font-size:14px; margin-top:10px; min-height:18px; }
+  .dash-link { display:inline-block; margin-top:14px; color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title"></h1>
+    <p id="subtitle"></p>
+  </header>
+  <form id="form"></form>
+  <div class="err" id="err"></div>
+  <div id="formActions"><button type="button" id="submitBtn">Submit answers</button></div>
+  <div class="done" id="done" hidden>
+    <h2>Thanks! 🎉</h2>
+    <p>Your answers were recorded.</p>
+    <a class="dash-link" href="dashboard.html">View live results &rarr;</a>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script>
+(function () {
+  var S = window.SURVEY;
+  document.getElementById("title").textContent = S.title;
+  document.getElementById("subtitle").textContent = S.subtitle;
+  var form = document.getElementById("form");
+
+  S.questions.forEach(function (q, i) {
+    var box = document.createElement("div");
+    box.className = "q";
+    box.dataset.qid = q.id;
+    box.dataset.type = q.type;
+    if (q.max) box.dataset.max = q.max;
+
+    var label = document.createElement("div");
+    label.className = "label";
+    label.innerHTML = '<span class="num">' + (i + 1) + '.</span>' + escapeHtml(q.text);
+    box.appendChild(label);
+
+    q.options.forEach(function (opt) {
+      var isOther = opt === "Other";
+      var id = q.id + "_" + opt.replace(/\W+/g, "");
+      var row = document.createElement("label");
+      row.className = "opt";
+
+      var input = document.createElement("input");
+      input.type = q.type === "multi" ? "checkbox" : "radio";
+      input.name = q.id;
+      input.value = opt;
+      input.id = id;
+
+      var span = document.createElement("span");
+      span.textContent = opt;
+
+      row.appendChild(input);
+      row.appendChild(span);
+      box.appendChild(row);
+
+      if (isOther) {
+        var txt = document.createElement("input");
+        txt.type = "text";
+        txt.className = "other-text";
+        txt.placeholder = "Please specify…";
+        txt.disabled = true;
+        txt.dataset.otherFor = q.id;
+        box.appendChild(txt);
+        input.addEventListener("change", function () {
+          txt.disabled = !input.checked;
+          if (input.checked) txt.focus();
+        });
+      }
+
+      if (q.type === "multi" && q.max) {
+        input.addEventListener("change", function () {
+          enforceMax(box, q.max);
+        });
+      }
+    });
+
+    if (q.type === "multi") {
+      var hint = document.createElement("div");
+      hint.className = "hint";
+      hint.textContent = q.max ? ("Select up to " + q.max) : "Select all that apply";
+      box.appendChild(hint);
+    }
+
+    form.appendChild(box);
+  });
+
+  function enforceMax(box, max) {
+    var checked = box.querySelectorAll('input[type="checkbox"]:checked');
+    var all = box.querySelectorAll('input[type="checkbox"]');
+    var disable = checked.length >= max;
+    all.forEach(function (c) { if (!c.checked) c.disabled = disable; });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function collect() {
+    var out = {};
+    var boxes = form.querySelectorAll(".q");
+    for (var i = 0; i < boxes.length; i++) {
+      var box = boxes[i];
+      var qid = box.dataset.qid;
+      var type = box.dataset.type;
+      var checked = box.querySelectorAll("input:checked");
+      var vals = [];
+      for (var j = 0; j < checked.length; j++) {
+        var v = checked[j].value;
+        if (v === "Other") {
+          var txt = box.querySelector('[data-other-for="' + qid + '"]');
+          var t = txt && txt.value.trim();
+          v = t ? "Other: " + t : "Other";
+        }
+        vals.push(v);
+      }
+      out[qid] = type === "multi" ? vals : (vals[0] || "");
+    }
+    return out;
+  }
+
+  var btn = document.getElementById("submitBtn");
+  var errEl = document.getElementById("err");
+
+  btn.addEventListener("click", function () {
+    errEl.textContent = "";
+    var data = collect();
+
+    // require at least ~half answered to avoid empty junk; tweak as needed
+    var answered = Object.keys(data).filter(function (k) {
+      var v = data[k];
+      return Array.isArray(v) ? v.length : v;
+    }).length;
+    if (answered === 0) {
+      errEl.textContent = "Please answer at least one question.";
+      return;
+    }
+
+    if (!window.SURVEY_ENDPOINT || /PASTE_YOUR/.test(window.SURVEY_ENDPOINT)) {
+      errEl.textContent = "Survey endpoint not configured (see README step 4).";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Submitting…";
+
+    var payload = { submittedAt: new Date().toISOString(), answers: data };
+
+    // text/plain avoids a CORS preflight against Apps Script
+    fetch(window.SURVEY_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json().catch(function () { return { ok: true }; }); })
+      .then(function () {
+        document.getElementById("form").hidden = true;
+        document.getElementById("formActions").hidden = true;
+        document.getElementById("done").hidden = false;
+        window.scrollTo(0, 0);
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        btn.textContent = "Submit answers";
+        errEl.textContent = "Could not submit: " + e.message;
+      });
+  });
+})();
+</script>
+</body>
+</html>
