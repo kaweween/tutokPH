@@ -1,205 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Photographer Workflow Survey</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Photographer Survey — Maniniyot</title>
 <style>
-  :root { --bg:#0f1115; --card:#181b22; --line:#262b36; --fg:#e8eaed; --muted:#9aa3b2; --accent:#5b8cff; --accent2:#2c4a8a; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  .wrap { max-width:720px; margin:0 auto; padding:24px 16px 80px; }
-  header h1 { font-size:24px; margin:0 0 6px; }
-  header p { color:var(--muted); margin:0 0 24px; }
-  .q { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:0 0 16px; }
-  .q .label { font-weight:600; margin-bottom:12px; }
-  .q .num { color:var(--accent); font-weight:700; margin-right:6px; }
-  .opt { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; }
-  .opt:hover { background:#202533; }
-  .opt input { width:18px; height:18px; accent-color:var(--accent); flex:0 0 auto; }
-  .other-text { margin:6px 0 0 38px; width:calc(100% - 38px); background:var(--bg); border:1px solid var(--line); color:var(--fg); border-radius:8px; padding:8px 10px; font:inherit; }
-  .other-text:disabled { opacity:.4; }
-  .hint { color:var(--muted); font-size:13px; margin-top:6px; }
-  button { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:14px 22px; font:600 16px/1 inherit; cursor:pointer; width:100%; }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1e7d4e; color:#fff; padding:12px 20px; border-radius:10px; opacity:0; transition:opacity .25s; pointer-events:none; }
-  .toast.show { opacity:1; }
-  .done { text-align:center; padding:60px 16px; }
-  .done h2 { font-size:22px; }
-  .err { color:#ff8080; font-size:14px; margin-top:10px; min-height:18px; }
-  .dash-link { display:inline-block; margin-top:14px; color:var(--accent); }
+:root {
+  --bg:     #0f1115;
+  --card:   #181b22;
+  --border: #262b36;
+  --fg:     #e8eaed;
+  --muted:  #9aa3b2;
+  --accent: #5b8cff;
+  --adim:   #1a2640;
+  --err:    #ff8080;
+  --r:      12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  min-height: 100dvh;
+}
+
+/* ── Progress bar ────────────────────────────────────────────────────────── */
+#prog-wrap {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.prog-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; color: var(--muted); margin-bottom: 8px;
+}
+.prog-row strong { color: var(--fg); font-size: 14px; }
+.prog-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.prog-fill  {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  transition: width .4s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Screen system ───────────────────────────────────────────────────────── */
+.screen { display: none; }
+.screen.show { display: block; animation: up .22s ease both; }
+@keyframes up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.wrap { max-width: 580px; margin: 0 auto; padding: 32px 16px 128px; }
+
+/* ── Intro ───────────────────────────────────────────────────────────────── */
+.intro-tag {
+  display: inline-block; background: var(--adim); color: var(--accent);
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 20px; margin-bottom: 24px;
+}
+.intro-h1 {
+  font-size: clamp(22px, 6vw, 30px); font-weight: 700;
+  line-height: 1.25; margin-bottom: 14px;
+}
+.intro-body { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
+.pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 36px; }
+.pill {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--muted);
+}
+.pill strong { color: var(--fg); }
+.btn-start {
+  display: block; width: 100%;
+  background: var(--accent); color: #fff;
+  border: 0; border-radius: var(--r);
+  font: 600 16px/1 inherit; padding: 17px; min-height: 54px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: filter .15s, transform .1s;
+}
+.btn-start:hover  { filter: brightness(1.1); }
+.btn-start:active { transform: scale(.98); }
+
+/* ── Step header ─────────────────────────────────────────────────────────── */
+.step-head { margin-bottom: 28px; }
+.step-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.step-desc  { color: var(--muted); font-size: 14px; }
+
+/* ── Question card ───────────────────────────────────────────────────────── */
+.q {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px; margin-bottom: 14px;
+  transition: border-color .2s;
+}
+.q.error { border-color: var(--err); }
+.q-label {
+  font-weight: 600; font-size: 15px; line-height: 1.45; margin-bottom: 14px;
+}
+.req-badge {
+  font-size: 10px; font-weight: 600; color: var(--accent);
+  background: var(--adim); padding: 2px 7px; border-radius: 4px;
+  margin-left: 8px; vertical-align: middle; letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.opt {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px; border-radius: 8px; cursor: pointer;
+  transition: background .12s; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.opt:hover { background: rgba(255,255,255,.05); }
+.opt input {
+  width: 20px; height: 20px; flex: 0 0 auto;
+  accent-color: var(--accent); cursor: pointer;
+}
+.opt span { font-size: 15px; }
+.other-input {
+  display: block; width: calc(100% - 32px); margin: 6px 0 0 32px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--fg); font: inherit; font-size: 14px; padding: 9px 12px;
+}
+.other-input:focus   { outline: none; border-color: var(--accent); }
+.other-input:disabled { opacity: .4; }
+.q-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.q-err  { font-size: 13px; color: var(--err);   margin-top: 8px; min-height: 18px; }
+
+/* ── Bottom nav ──────────────────────────────────────────────────────────── */
+#bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+  background: rgba(15,17,21,.95); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border); padding: 12px 16px;
+}
+.nav-inner { max-width: 580px; margin: 0 auto; display: flex; gap: 10px; }
+.btn {
+  border: 0; border-radius: var(--r); font: 600 16px/1 inherit;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: filter .15s, transform .1s; min-height: 52px;
+}
+.btn:active { transform: scale(.98); }
+.btn-next {
+  flex: 1; background: var(--accent); color: #fff; padding: 16px;
+}
+.btn-next:hover    { filter: brightness(1.1); }
+.btn-next:disabled { opacity: .5; cursor: default; filter: none; transform: none; }
+.btn-back {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--fg); padding: 16px 22px; font-size: 20px; line-height: 1;
+}
+
+/* ── Done screen ─────────────────────────────────────────────────────────── */
+.done-inner { text-align: center; padding: 64px 24px; }
+.done-icon  { font-size: 54px; margin-bottom: 20px; }
+.done-h2    { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+.done-p     { color: var(--muted); font-size: 15px; line-height: 1.65; margin-bottom: 28px; }
+.done-link  { color: var(--accent); font-weight: 600; text-decoration: none; }
+.done-link:hover { text-decoration: underline; }
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
+  background: var(--adim); border: 1px solid rgba(91,140,255,.3);
+  color: var(--accent); padding: 9px 18px; border-radius: 20px;
+  font-size: 13px; pointer-events: none; opacity: 0;
+  transition: opacity .2s; white-space: nowrap; z-index: 30;
+}
+#toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1 id="title"></h1>
-    <p id="subtitle"></p>
-  </header>
-  <form id="form"></form>
-  <div class="err" id="err"></div>
-  <div id="formActions"><button type="button" id="submitBtn">Submit answers</button></div>
-  <div class="done" id="done" hidden>
-    <h2>Thanks! 🎉</h2>
-    <p>Your answers were recorded.</p>
-    <a class="dash-link" href="dashboard.html">View live results &rarr;</a>
+
+<!-- Progress bar (hidden until step 1) -->
+<div id="prog-wrap" style="display:none">
+  <div class="prog-row">
+    <strong id="prog-label">Step 1 of 5</strong>
+    <span id="prog-pct">20%</span>
+  </div>
+  <div class="prog-track">
+    <div class="prog-fill" id="prog-fill" style="width:20%"></div>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+
+<!-- All screens rendered here by JS -->
+<div id="app"></div>
+
+<!-- Bottom nav (hidden until step 1) -->
+<div id="bottom-nav" style="display:none">
+  <div class="nav-inner">
+    <button class="btn btn-back" id="btn-back" style="display:none" aria-label="Previous step">←</button>
+    <button class="btn btn-next" id="btn-next">Next →</button>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="config.js"></script>
 <script src="questions.js"></script>
 <script>
 (function () {
-  var S = window.SURVEY;
-  document.getElementById("title").textContent = S.title;
-  document.getElementById("subtitle").textContent = S.subtitle;
-  var form = document.getElementById("form");
+'use strict';
 
-  S.questions.forEach(function (q, i) {
-    var box = document.createElement("div");
-    box.className = "q";
-    box.dataset.qid = q.id;
-    box.dataset.type = q.type;
-    if (q.max) box.dataset.max = q.max;
+var S         = window.SURVEY;
+var STORE_KEY = 'mnyt_survey_v3';
 
-    var label = document.createElement("div");
-    label.className = "label";
-    label.innerHTML = '<span class="num">' + (i + 1) + '.</span>' + escapeHtml(q.text);
-    box.appendChild(label);
+/* ── State ────────────────────────────────────────────────────────────── */
+var stepIdx = -1;   // -1 = intro, 0..N-1 = steps, N = done
+var answers = {};
 
-    q.options.forEach(function (opt) {
-      var isOther = opt === "Other";
-      var id = q.id + "_" + opt.replace(/\W+/g, "");
-      var row = document.createElement("label");
-      row.className = "opt";
+try {
+  var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+  if (saved && typeof saved.answers === 'object') answers = saved.answers;
+} catch (_) {}
 
-      var input = document.createElement("input");
-      input.type = q.type === "multi" ? "checkbox" : "radio";
-      input.name = q.id;
-      input.value = opt;
-      input.id = id;
+/* ── Question index ───────────────────────────────────────────────────── */
+var steps   = S.steps;
+var allQ    = S.questions;
+var qByStep = {};
+steps.forEach(function (s) { qByStep[s.id] = []; });
+allQ.forEach(function (q) { if (qByStep[q.step]) qByStep[q.step].push(q); });
 
-      var span = document.createElement("span");
-      span.textContent = opt;
+/* ── DOM refs ─────────────────────────────────────────────────────────── */
+var app       = document.getElementById('app');
+var progWrap  = document.getElementById('prog-wrap');
+var progLabel = document.getElementById('prog-label');
+var progPct   = document.getElementById('prog-pct');
+var progFill  = document.getElementById('prog-fill');
+var bottomNav = document.getElementById('bottom-nav');
+var btnBack   = document.getElementById('btn-back');
+var btnNext   = document.getElementById('btn-next');
 
-      row.appendChild(input);
-      row.appendChild(span);
-      box.appendChild(row);
+/* ── Build screens ────────────────────────────────────────────────────── */
 
-      if (isOther) {
-        var txt = document.createElement("input");
-        txt.type = "text";
-        txt.className = "other-text";
-        txt.placeholder = "Please specify…";
-        txt.disabled = true;
-        txt.dataset.otherFor = q.id;
-        box.appendChild(txt);
-        input.addEventListener("change", function () {
-          txt.disabled = !input.checked;
-          if (input.checked) txt.focus();
-        });
-      }
+// Intro
+var introEl = el('div', { className: 'screen', id: 'scr-intro' });
+introEl.innerHTML =
+  '<div class="wrap">' +
+  '  <div class="intro-tag">Photographer Survey</div>' +
+  '  <h1 class="intro-h1">' + x(S.intro.heading) + '</h1>' +
+  '  <p class="intro-body">' + x(S.intro.body) + '</p>' +
+  '  <div class="pills">' +
+  '    <div class="pill">📋 <strong>13 questions</strong></div>' +
+  '    <div class="pill">⏱ <strong>~4 minutes</strong></div>' +
+  '    <div class="pill">🔒 <strong>Anonymous</strong></div>' +
+  '  </div>' +
+  '  <button class="btn-start" id="btn-start">' + x(S.intro.cta) + '</button>' +
+  '</div>';
+app.appendChild(introEl);
 
-      if (q.type === "multi" && q.max) {
-        input.addEventListener("change", function () {
-          enforceMax(box, q.max);
-        });
-      }
+// Step screens
+steps.forEach(function (step) {
+  var scr  = el('div', { className: 'screen', id: 'scr-' + step.id });
+  var wrap = el('div', { className: 'wrap' });
+  wrap.innerHTML =
+    '<div class="step-head">' +
+    '  <div class="step-title">' + x(step.title) + '</div>' +
+    '  <div class="step-desc">'  + x(step.desc)  + '</div>' +
+    '</div>';
+  qByStep[step.id].forEach(function (q) { wrap.appendChild(buildQ(q)); });
+  scr.appendChild(wrap);
+  app.appendChild(scr);
+});
+
+// Done
+var doneEl = el('div', { className: 'screen', id: 'scr-done' });
+doneEl.innerHTML =
+  '<div class="wrap done-inner">' +
+  '  <div class="done-icon">🙌</div>' +
+  '  <h2 class="done-h2">Salamat! You\'re amazing.</h2>' +
+  '  <p class="done-p">Your answers will shape what we build first.<br>We\'ll reach out when we\'re ready for early testers.</p>' +
+  '  <a class="done-link" href="dashboard.html">See live results →</a>' +
+  '</div>';
+app.appendChild(doneEl);
+
+/* ── Show intro ───────────────────────────────────────────────────────── */
+showScreen('scr-intro');
+
+/* ── Events ───────────────────────────────────────────────────────────── */
+document.getElementById('btn-start').addEventListener('click', function () { goTo(0); });
+
+btnBack.addEventListener('click', function () {
+  if (stepIdx > 0) {
+    goTo(stepIdx - 1);
+  } else {
+    stepIdx = -1;
+    showScreen('scr-intro');
+    progWrap.style.display  = 'none';
+    bottomNav.style.display = 'none';
+  }
+});
+
+btnNext.addEventListener('click', function () {
+  if (!validateStep(steps[stepIdx].id)) return;
+  if (stepIdx < steps.length - 1) {
+    goTo(stepIdx + 1);
+  } else {
+    submit();
+  }
+});
+
+/* ── Navigation ───────────────────────────────────────────────────────── */
+function goTo(si) {
+  stepIdx = si;
+  showScreen('scr-' + steps[si].id);
+
+  var current = si + 1;
+  var total   = steps.length;
+  var pct     = Math.round((current / total) * 100);
+  progLabel.textContent    = 'Step ' + current + ' of ' + total;
+  progPct.textContent      = pct + '%';
+  progFill.style.width     = pct + '%';
+  progWrap.style.display   = 'block';
+  bottomNav.style.display  = 'flex';
+  btnBack.style.display    = si === 0 ? 'none' : '';
+  btnNext.textContent      = si === steps.length - 1 ? 'Submit answers' : 'Next →';
+  btnNext.disabled         = false;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('show'); });
+  var target = document.getElementById(id);
+  if (target) target.classList.add('show');
+}
+
+/* ── Build question element ───────────────────────────────────────────── */
+function buildQ(q) {
+  var box = el('div', { className: 'q', id: 'qbox-' + q.id });
+  box.dataset.qid  = q.id;
+  box.dataset.type = q.type;
+  if (q.max) box.dataset.max = q.max;
+
+  // Label
+  var lbl = el('div', { className: 'q-label' });
+  lbl.textContent = q.text;
+  if (q.required) {
+    var badge = el('span', { className: 'req-badge' });
+    badge.textContent = 'required';
+    lbl.appendChild(badge);
+  }
+  box.appendChild(lbl);
+
+  // Options
+  q.options.forEach(function (opt) {
+    var isOther = opt === 'Other';
+
+    var row = el('label', { className: 'opt' });
+    var inp = el('input');
+    inp.type  = q.type === 'multi' ? 'checkbox' : 'radio';
+    inp.name  = q.id;
+    inp.value = opt;
+
+    // Restore persisted answer
+    var sv = answers[q.id];
+    inp.checked = q.type === 'multi'
+      ? Array.isArray(sv) && sv.indexOf(opt) !== -1
+      : sv === opt;
+
+    inp.addEventListener('change', function () {
+      collectQ(q);
+      persist();
+      if (q.type === 'multi' && q.max) enforceMax(box, q.max);
     });
 
-    if (q.type === "multi") {
-      var hint = document.createElement("div");
-      hint.className = "hint";
-      hint.textContent = q.max ? ("Select up to " + q.max) : "Select all that apply";
-      box.appendChild(hint);
-    }
+    var txt = el('span');
+    txt.textContent = opt;
+    row.appendChild(inp);
+    row.appendChild(txt);
+    box.appendChild(row);
 
-    form.appendChild(box);
-  });
+    if (isOther) {
+      var free = el('input', { className: 'other-input', type: 'text' });
+      free.placeholder = 'Tell us more…';
+      free.dataset.otherFor = q.id;
+      free.disabled = !inp.checked;
 
-  function enforceMax(box, max) {
-    var checked = box.querySelectorAll('input[type="checkbox"]:checked');
-    var all = box.querySelectorAll('input[type="checkbox"]');
-    var disable = checked.length >= max;
-    all.forEach(function (c) { if (!c.checked) c.disabled = disable; });
-  }
+      var savedFree = answers[q.id + '_other'];
+      if (savedFree) free.value = savedFree;
 
-  function escapeHtml(s) {
-    return s.replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-
-  function collect() {
-    var out = {};
-    var boxes = form.querySelectorAll(".q");
-    for (var i = 0; i < boxes.length; i++) {
-      var box = boxes[i];
-      var qid = box.dataset.qid;
-      var type = box.dataset.type;
-      var checked = box.querySelectorAll("input:checked");
-      var vals = [];
-      for (var j = 0; j < checked.length; j++) {
-        var v = checked[j].value;
-        if (v === "Other") {
-          var txt = box.querySelector('[data-other-for="' + qid + '"]');
-          var t = txt && txt.value.trim();
-          v = t ? "Other: " + t : "Other";
-        }
-        vals.push(v);
-      }
-      out[qid] = type === "multi" ? vals : (vals[0] || "");
-    }
-    return out;
-  }
-
-  var btn = document.getElementById("submitBtn");
-  var errEl = document.getElementById("err");
-
-  btn.addEventListener("click", function () {
-    errEl.textContent = "";
-    var data = collect();
-
-    // require at least ~half answered to avoid empty junk; tweak as needed
-    var answered = Object.keys(data).filter(function (k) {
-      var v = data[k];
-      return Array.isArray(v) ? v.length : v;
-    }).length;
-    if (answered === 0) {
-      errEl.textContent = "Please answer at least one question.";
-      return;
-    }
-
-    if (!window.SURVEY_ENDPOINT || /PASTE_YOUR/.test(window.SURVEY_ENDPOINT)) {
-      errEl.textContent = "Survey endpoint not configured (see README step 4).";
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = "Submitting…";
-
-    var payload = { submittedAt: new Date().toISOString(), answers: data };
-
-    // text/plain avoids a CORS preflight against Apps Script
-    fetch(window.SURVEY_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    })
-      .then(function (r) { return r.json().catch(function () { return { ok: true }; }); })
-      .then(function () {
-        document.getElementById("form").hidden = true;
-        document.getElementById("formActions").hidden = true;
-        document.getElementById("done").hidden = false;
-        window.scrollTo(0, 0);
-      })
-      .catch(function (e) {
-        btn.disabled = false;
-        btn.textContent = "Submit answers";
-        errEl.textContent = "Could not submit: " + e.message;
+      inp.addEventListener('change', function () {
+        free.disabled = !inp.checked;
+        if (inp.checked) setTimeout(function () { free.focus(); }, 40);
       });
+      free.addEventListener('input', function () {
+        answers[q.id + '_other'] = free.value;
+        persist();
+      });
+      box.appendChild(free);
+    }
+
+    if (q.type === 'multi' && q.max) enforceMax(box, q.max);
   });
+
+  if (q.type === 'multi') {
+    var hint = el('div', { className: 'q-hint' });
+    hint.textContent = q.max ? 'Pick up to ' + q.max : 'Select all that apply';
+    box.appendChild(hint);
+  }
+
+  var errEl = el('div', { className: 'q-err', id: 'err-' + q.id });
+  box.appendChild(errEl);
+
+  return box;
+}
+
+/* ── Collect + persist ────────────────────────────────────────────────── */
+function collectQ(q) {
+  var box  = document.getElementById('qbox-' + q.id);
+  var vals = [];
+  box.querySelectorAll('input:checked').forEach(function (c) {
+    var v = c.value;
+    if (v === 'Other') {
+      var free = box.querySelector('[data-other-for="' + q.id + '"]');
+      v = (free && free.value.trim()) ? 'Other: ' + free.value.trim() : 'Other';
+    }
+    vals.push(v);
+  });
+  answers[q.id] = q.type === 'multi' ? vals : (vals[0] || '');
+}
+
+function collectAll() { allQ.forEach(function (q) { collectQ(q); }); }
+
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ answers: answers })); } catch (_) {}
+}
+
+/* ── Enforce multi max ────────────────────────────────────────────────── */
+function enforceMax(box, max) {
+  var cbs = box.querySelectorAll('input[type="checkbox"]');
+  var n   = box.querySelectorAll('input[type="checkbox"]:checked').length;
+  cbs.forEach(function (c) { if (!c.checked) c.disabled = n >= max; });
+}
+
+/* ── Per-step validation ──────────────────────────────────────────────── */
+function validateStep(stepId) {
+  var valid    = true;
+  var firstErr = null;
+  qByStep[stepId].forEach(function (q) {
+    var errEl = document.getElementById('err-' + q.id);
+    var box   = document.getElementById('qbox-' + q.id);
+    errEl.textContent = '';
+    box.classList.remove('error');
+    if (!q.required) return;
+    collectQ(q);
+    var ans      = answers[q.id];
+    var answered = Array.isArray(ans) ? ans.length > 0 : !!ans;
+    if (!answered) {
+      errEl.textContent = 'We really need this one — please pick an option.';
+      box.classList.add('error');
+      if (!firstErr) firstErr = box;
+      valid = false;
+    }
+  });
+  if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return valid;
+}
+
+/* ── Submit ───────────────────────────────────────────────────────────── */
+function submit() {
+  collectAll();
+  persist();
+
+  if (!window.SURVEY_ENDPOINT || /PASTE_YOUR/.test(window.SURVEY_ENDPOINT)) {
+    toast('⚠ Endpoint not configured — see README.');
+    return;
+  }
+
+  btnNext.disabled    = true;
+  btnNext.textContent = 'Sending…';
+
+  fetch(window.SURVEY_ENDPOINT, {
+    method:  'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body:    JSON.stringify({ submittedAt: new Date().toISOString(), answers: answers })
+  })
+    .then(function (r) { return r.json().catch(function () { return { ok: true }; }); })
+    .then(function () {
+      try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+      progWrap.style.display  = 'none';
+      bottomNav.style.display = 'none';
+      showScreen('scr-done');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    })
+    .catch(function (err) {
+      btnNext.disabled    = false;
+      btnNext.textContent = 'Submit answers';
+      toast('Could not send — ' + err.message);
+    });
+}
+
+/* ── Helpers ──────────────────────────────────────────────────────────── */
+var toastTimer;
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2800);
+}
+
+function el(tag, props) {
+  var node = document.createElement(tag);
+  if (props) Object.keys(props).forEach(function (k) { node[k] = props[k]; });
+  return node;
+}
+
+function x(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
 })();
 </script>
 </body>

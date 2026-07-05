@@ -1,142 +1,114 @@
 // Shared survey schema. Loaded by both index.html (form) and dashboard.html (analytics).
-// type: "single" = pick one (radio). "multi" = pick many (checkbox). max = limit for multi.
-// An option literally named "Other" renders a free-text field.
+// type: "single" = radio. "multi" = checkbox. max = pick-limit for multi.
+// step, required, requiredReason — used by multi-step form only; dashboard ignores them.
 window.SURVEY = {
-  title: "Photographer Workflow Survey",
-  subtitle: "Help us understand how you work after an event. ~5 minutes, anonymous.",
+  title: "Maniniyot Photographer Survey",
+
+  intro: {
+    heading: "Can we get 4 minutes of your time?",
+    body: "We're building a platform for event photographers in the PH — and we'd rather ask you first than guess. 13 questions, all multiple-choice, totally anonymous. No spam, ever.",
+    cta: "Let's go →"
+  },
+
+  steps: [
+    { id: "s1", title: "Right after the shoot",  desc: "Let's start easy — no trick questions." },
+    { id: "s2", title: "Your tools & gear",       desc: "Tell us what you're already working with." },
+    { id: "s3", title: "Bibs & delivery",         desc: "This is usually the messy part — we want to know." },
+    { id: "s4", title: "Files & storage",         desc: "Two quick ones about keeping your work." },
+    { id: "s5", title: "Your take",               desc: "Last stretch — your opinion is the whole point." }
+  ],
+
   questions: [
+    // ── Step 1 ─────────────────────────────────────────────────────────────
     {
-      id: "Q1",
-      text: "What do you do first after an event?",
+      id: "Q1", step: "s1", required: false,
+      text: "What's the first thing you do right after an event?",
       type: "single",
-      options: ["Import photos", "Selecting photos", "Tag metadata", "Backup files", "Share proof gallery", "Other"]
+      options: ["Import photos", "Select the keepers", "Add metadata", "Back up files", "Share a proof gallery", "Other"]
     },
     {
-      id: "Q2",
-      text: "What takes the most time after a shoot?",
+      id: "Q2", step: "s1", required: false,
+      text: "What eats up the most time after a shoot?",
       type: "single",
-      options: ["Selecting photos", "Metadata entry", "Editing", "Uploading", "Client communication", "Matching bib numbers", "Other"]
+      options: ["Culling / selecting", "Metadata entry", "Editing", "Uploading", "Client messages", "Bib matching", "Other"]
     },
+
+    // ── Step 2 ─────────────────────────────────────────────────────────────
     {
-      id: "Q3",
-      text: "How do you keep event photos organized?",
+      id: "Q7", step: "s2", required: false,
+      text: "Which tools do you already use most?",
       type: "single",
-      options: ["Event folders", "Tags or keywords", "Spreadsheet or notes", "Client names", "Camera folders", "Memory cards", "Other"]
+      options: ["FindMyShots.com", "Fokus.ph", "Lightroom", "Photo Mechanic", "Google Drive", "Dropbox", "Email / WhatsApp", "Spreadsheet", "Other"]
     },
     {
-      id: "Q4",
-      text: "What slows you down when delivering photos?",
-      type: "single",
-      options: ["Slow upload", "Finding images", "Editing", "Manual tagging", "Export settings", "Client reviews", "Bad links", "Other"]
-    },
-    {
-      id: "Q5",
-      text: "When you have multiple events, how do you manage them?",
-      type: "single",
-      options: ["One at a time", "Batch similar tasks", "Use helpers or assistants", "Complete all events for the day before processing images", "Other"]
-    },
-    {
-      id: "Q6",
-      text: "What would you most like to be easier or more automatic? (pick up to 2)",
-      type: "multi",
-      max: 2,
-      options: ["Auto-tagging", "Editing workflow", "Bib/name matching", "Proof gallery creation", "Upload & backup", "Client review", "Delivery links", "Cloud storage", "Other"]
-    },
-    {
-      id: "Q7",
-      text: "Which tools do you already use most often?",
-      type: "single",
-      options: ["FindMyShots.com", "Fokus.ph", "Lightroom", "Photo Mechanic", "Google Drive", "Dropbox", "Email/WhatsApp", "Spreadsheet", "Event photo site", "Other"]
-    },
-    {
-      id: "Q8",
-      text: "What would you improve about your current tools?",
-      type: "single",
-      options: ["Faster upload", "Better search", "Easier editing", "Easier tagging", "Cleaner sharing", "Less switching", "Better pricing", "Other"]
-    },
-    {
-      id: "Q9",
-      text: "How do you capture bib numbers, names, or event IDs?",
-      type: "single",
-      options: ["Manual notes", "Spreadsheet", "Camera notes", "Organizer list", "In-app tags", "Other"]
-    },
-    {
-      id: "Q10",
-      text: "How do you collect feedback or approvals after an event?",
-      type: "single",
-      options: ["Email", "WhatsApp", "Shared gallery", "Organizer", "Comments in app", "No formal process", "Other"]
-    },
-    {
-      id: "Q11",
-      text: "What makes it hard to deliver the right photos fast?",
-      type: "single",
-      options: ["Wrong labels", "Slow proofs", "Missing metadata", "Poor search", "File sizes", "Link issues", "Other"]
-    },
-    {
-      id: "Q12",
-      text: "What worries you most when publishing event photos?",
-      type: "single",
-      options: ["Theft", "Unauthorized use", "No control", "Weak watermark", "Wrong rights", "Losing originals", "Other"]
-    },
-    {
-      id: "Q13",
-      text: "What would help you spend less time on admin and more on shooting?",
-      type: "single",
-      options: ["One upload workflow", "Smart tagging", "Auto galleries", "Easier editing", "Easy client review", "Instant delivery", "Better search", "Other"]
-    },
-    {
-      id: "Q14",
-      text: "How do you usually move photos from your camera or phone into your workflow?",
+      id: "Q14", step: "s2", required: false,
+      text: "How do your photos get from camera to your computer?",
       type: "single",
       options: ["Memory card reader", "USB cable", "Wi-Fi transfer", "Phone import", "Online service", "Other"]
     },
     {
-      id: "Q15",
-      text: "On phone or camera, do you pick only selected photos to upload or move everything and sort later?",
-      type: "single",
-      options: ["Pick selected photos", "Move everything and sort later", "Depends on the event", "I don't use phone photos", "Other"]
-    },
-    {
-      id: "Q16",
-      text: "What devices do you use for an event shoot? (select all that apply)",
+      id: "Q16", step: "s2", required: false,
+      text: "What do you shoot with? (select all that apply)",
       type: "multi",
-      options: ["DSLR", "Mirrorless camera", "Phone camera", "Action camera", "Drone", "Other"]
+      options: ["DSLR", "Mirrorless", "Phone", "Action cam", "Drone", "Other"]
+    },
+
+    // ── Step 3 ─────────────────────────────────────────────────────────────
+    {
+      id: "Q9", step: "s3", required: true,
+      requiredReason: "Drives bib-search vs face-match priority in the roadmap.",
+      text: "How do you track bib numbers, names, or event IDs on your photos?",
+      type: "single",
+      options: ["Manual notes", "Spreadsheet", "Camera notes", "Organizer list", "In-app tags", "I don't track them", "Other"]
     },
     {
-      id: "Q17",
-      text: "What kind of photo files do you work with most after a shoot?",
+      id: "Q4", step: "s3", required: false,
+      text: "What's usually holding up delivery?",
       type: "single",
-      options: ["JPEG only", "RAW only", "Both JPEG and RAW", "I'm not sure", "Other"]
+      options: ["Slow upload", "Finding the right images", "Editing", "Manual tagging", "Export settings", "Client review cycles", "Other"]
     },
     {
-      id: "Q18",
-      text: "How long do you keep a full event gallery available before archiving or deleting it?",
+      id: "Q15", step: "s3", required: false,
+      text: "When uploading — do you pick only the good ones first, or move everything and sort later?",
       type: "single",
-      options: ["1 week", "2 weeks", "3 weeks", "1-3 months", "3-6 months", "6-12 months", "Until client approves", "Other"]
+      options: ["Pick selected photos", "Move everything, sort later", "Depends on the event", "I don't upload from phone", "Other"]
+    },
+
+    // ── Step 4 ─────────────────────────────────────────────────────────────
+    {
+      id: "Q17", step: "s4", required: false,
+      text: "What file types do you deliver most?",
+      type: "single",
+      options: ["JPEG only", "RAW only", "Both JPEG and RAW", "Not sure", "Other"]
     },
     {
-      id: "Q19",
-      text: "How are you usually paid for an event shoot, and does payment status change how long you keep that gallery?",
+      id: "Q18", step: "s4", required: false,
+      text: "How long do you keep a gallery live before archiving or deleting?",
       type: "single",
-      options: ["Paid gig — keep longer", "Paid gig — keep same", "Paid per photo sold — keep while selling", "Free or hobby — delete sooner", "Payment doesn't change retention", "Other"]
+      options: ["1–2 weeks", "3 weeks – 1 month", "1–3 months", "3–6 months", "6–12 months", "Until client approves", "Other"]
+    },
+
+    // ── Step 5 ─────────────────────────────────────────────────────────────
+    {
+      id: "Q12", step: "s5", required: false,
+      text: "When you publish event photos, what worries you most?",
+      type: "single",
+      options: ["Photo theft", "Unauthorized use", "Losing originals", "Weak watermarks", "Wrong licensing", "Nothing — I'm not worried", "Other"]
     },
     {
-      id: "Q20",
-      text: "Does getting paid change how fast you deliver photos?",
-      type: "single",
-      options: ["Paid gigs delivered faster", "Same speed regardless", "Paid gigs delivered slower", "Depends on the client", "Other"]
+      id: "Q6", step: "s5", required: true,
+      requiredReason: "Shapes which features we build first.",
+      text: "If you could make two things automatic, what would they be?",
+      type: "multi",
+      max: 2,
+      options: ["Auto-tagging", "Editing", "Bib / name matching", "Proof gallery creation", "Upload & backup", "Client review", "Delivery links", "Cloud storage", "Other"]
     },
     {
-      id: "Q21",
-      text: "When you juggle multiple events, which do you finish first?",
+      id: "Q22", step: "s5", required: true,
+      requiredReason: "Core product adoption signal — tells us if the market is there.",
+      text: "If a shoot is already a paid gig with delivery handled, would you still use an app to sell extra prints?",
       type: "single",
-      options: ["Highest-paying first", "Earliest deadline first", "Easiest/fastest first", "First come first served", "Other"]
-    },
-    {
-      id: "Q22",
-      text: "If a shoot is already a paid gig with delivery handled, would you still use an app to deliver and sell photos?",
-      type: "single",
-      options: ["Yes for extra photo sales", "Yes for easier delivery", "Only if client asks", "No, not needed", "Other"]
+      options: ["Yes — extra sales are worth it", "Yes — easier delivery alone is enough", "Only if the client asks", "Probably not", "Other"]
     }
   ]
 };
