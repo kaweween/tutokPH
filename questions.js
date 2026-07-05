@@ -1,12 +1,13 @@
 // Shared survey schema. Loaded by both index.html (form) and dashboard.html (analytics).
-// type: "single" = radio. "multi" = checkbox. max = pick-limit for multi.
+// type: "single" = radio. "multi" = checkbox (max = pick-limit). "text" = one-line input. "textarea" = multi-line.
+// pattern/patternError = optional regex validation for "text" fields (e.g. Facebook URL check).
 // step, required, requiredReason — used by multi-step form only; dashboard ignores them.
 window.SURVEY = {
   title: "Maniniyot Photographer Survey",
 
   intro: {
     heading: "Can we get 4 minutes of your time?",
-    body: "We're building a platform for event photographers in the PH — and we'd rather ask you first than guess. 13 questions, all multiple-choice, totally anonymous. No spam, ever.",
+    body: "We're building a platform for event photographers in the PH — and we'd rather ask you first than guess. 16 quick questions, totally anonymous unless you choose to share contact info. No spam, ever.",
     cta: "Let's go →"
   },
 
@@ -15,7 +16,8 @@ window.SURVEY = {
     { id: "s2", title: "Your tools & gear",       desc: "Tell us what you're already working with." },
     { id: "s3", title: "Bibs & delivery",         desc: "This is usually the messy part — we want to know." },
     { id: "s4", title: "Files & storage",         desc: "Two quick ones about keeping your work." },
-    { id: "s5", title: "Your take",               desc: "Last stretch — your opinion is the whole point." }
+    { id: "s5", title: "Your take",               desc: "Last stretch — your opinion is the whole point." },
+    { id: "s6", title: "About you",               desc: "Last one, promise — helps us verify and follow up." }
   ],
 
   questions: [
@@ -109,6 +111,33 @@ window.SURVEY = {
       text: "If a shoot is already a paid gig with delivery handled, would you still use an app to sell extra prints?",
       type: "single",
       options: ["Yes — extra sales are worth it", "Yes — easier delivery alone is enough", "Only if the client asks", "Probably not", "Other"]
+    },
+
+    // ── Step 6 ─────────────────────────────────────────────────────────────
+    {
+      id: "QFB", step: "s6", required: true,
+      requiredReason: "Confirms the respondent is a real, working photographer and not a bot or throwaway answer.",
+      text: "Link to your photography Facebook Page (not your personal profile)",
+      type: "text",
+      inputType: "url",
+      placeholder: "https://facebook.com/yourpagename",
+      pattern: "facebook\\.com|fb\\.com|fb\\.me",
+      patternError: "That doesn't look like a Facebook link — paste your Page URL.",
+      hint: "We just peek to confirm you're an active photographer. We won't post, message, or spam your page."
+    },
+    {
+      id: "QCONTACT", step: "s6", required: false,
+      text: "Open to us reaching out? Leave your email or number if you're willing to answer follow-up questions or beta test our app.",
+      type: "text",
+      inputType: "text",
+      placeholder: "Email or phone number (optional)",
+      hint: "Totally optional — leave blank if you'd rather stay anonymous."
+    },
+    {
+      id: "QHELP", step: "s6", required: false,
+      text: "What would help you most in your photography business or hobby right now?",
+      type: "textarea",
+      placeholder: "Anything goes — pain points, a feature you wish existed, whatever's on your mind."
     }
   ]
 };

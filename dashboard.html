@@ -24,6 +24,9 @@
   .card .qid { color:var(--accent); font-weight:700; }
   .card .meta { color:var(--muted); font-size:12px; margin-bottom:8px; }
   .chartbox { position:relative; height:260px; }
+  .textlist { max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .textitem { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; word-break:break-word; }
+  .textlist .muted { color:var(--muted); font-size:13px; padding:8px 0; }
   .empty { text-align:center; color:var(--muted); padding:80px 16px; }
   .live { font-size:12px; color:var(--muted); }
   .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#1e7d4e; margin-right:6px; vertical-align:middle; }
@@ -89,16 +92,31 @@
       S.questions.forEach(function (q, i) {
         var card = document.createElement("div");
         card.className = "card";
+        var isText = q.type === "text" || q.type === "textarea";
+        var meta = isText ? "open response" : (q.type === "multi" ? (q.max ? "select up to " + q.max : "select all") : "select one");
+        var body = isText
+          ? '<div class="textlist" id="c_' + q.id + '"></div>'
+          : '<div class="chartbox"><canvas id="c_' + q.id + '"></canvas></div>';
         card.innerHTML =
           '<h3><span class="qid">' + q.id + '</span> · ' + escapeHtml(q.text) + '</h3>' +
-          '<div class="meta">' + (q.type === "multi" ? (q.max ? "select up to " + q.max : "select all") : "select one") + '</div>' +
-          '<div class="chartbox"><canvas id="c_' + q.id + '"></canvas></div>';
+          '<div class="meta">' + meta + '</div>' +
+          body;
         content.appendChild(card);
       });
       content.dataset.built = "1";
     }
 
     S.questions.forEach(function (q) {
+      if (q.type === "text" || q.type === "textarea") {
+        var list = document.getElementById("c_" + q.id);
+        var vals = rows
+          .map(function (r) { return r.answers ? r.answers[q.id] : null; })
+          .filter(function (v) { return v && String(v).trim(); });
+        list.innerHTML = vals.length
+          ? vals.map(function (v) { return '<div class="textitem">' + escapeHtml(String(v)) + '</div>'; }).join('')
+          : '<div class="muted">No responses yet.</div>';
+        return;
+      }
       var counts = aggregate(q);
       var labels = Object.keys(counts);
       var data = labels.map(function (l) { return counts[l]; });

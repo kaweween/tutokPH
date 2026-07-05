@@ -119,6 +119,13 @@ body {
 }
 .other-input:focus   { outline: none; border-color: var(--accent); }
 .other-input:disabled { opacity: .4; }
+.text-input {
+  display: block; width: 100%;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--fg); font: inherit; font-size: 15px; padding: 11px 12px;
+}
+.text-input:focus { outline: none; border-color: var(--accent); }
+textarea.text-input { resize: vertical; min-height: 96px; }
 .q-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 .q-err  { font-size: 13px; color: var(--err);   margin-top: 8px; min-height: 18px; }
 
@@ -235,7 +242,7 @@ introEl.innerHTML =
   '  <h1 class="intro-h1">' + x(S.intro.heading) + '</h1>' +
   '  <p class="intro-body">' + x(S.intro.body) + '</p>' +
   '  <div class="pills">' +
-  '    <div class="pill">📋 <strong>13 questions</strong></div>' +
+  '    <div class="pill">📋 <strong>16 questions</strong></div>' +
   '    <div class="pill">⏱ <strong>~4 minutes</strong></div>' +
   '    <div class="pill">🔒 <strong>Anonymous</strong></div>' +
   '  </div>' +
@@ -264,7 +271,7 @@ doneEl.innerHTML =
   '  <div class="done-icon">🙌</div>' +
   '  <h2 class="done-h2">Salamat! You\'re amazing.</h2>' +
   '  <p class="done-p">Your answers will shape what we build first.<br>We\'ll reach out when we\'re ready for early testers.</p>' +
-  '  <a class="done-link" href="dashboard.html">See live results →</a>' +
+//  '  <a class="done-link" href="dashboard.html">See live results →</a>' +
   '</div>';
 app.appendChild(doneEl);
 
@@ -336,6 +343,33 @@ function buildQ(q) {
   }
   box.appendChild(lbl);
 
+  // Free-text question (single-line or multi-line)
+  if (q.type === 'text' || q.type === 'textarea') {
+    var input = q.type === 'textarea'
+      ? el('textarea', { className: 'text-input', rows: 4 })
+      : el('input', { className: 'text-input', type: q.inputType || 'text' });
+    input.placeholder = q.placeholder || '';
+
+    var svText = answers[q.id];
+    if (svText) input.value = svText;
+
+    input.addEventListener('input', function () {
+      answers[q.id] = input.value;
+      persist();
+    });
+    box.appendChild(input);
+
+    if (q.hint) {
+      var textHint = el('div', { className: 'q-hint' });
+      textHint.textContent = q.hint;
+      box.appendChild(textHint);
+    }
+
+    var textErrEl = el('div', { className: 'q-err', id: 'err-' + q.id });
+    box.appendChild(textErrEl);
+    return box;
+  }
+
   // Options
   q.options.forEach(function (opt) {
     var isOther = opt === 'Other';
@@ -401,7 +435,12 @@ function buildQ(q) {
 
 /* ── Collect + persist ────────────────────────────────────────────────── */
 function collectQ(q) {
-  var box  = document.getElementById('qbox-' + q.id);
+  var box = document.getElementById('qbox-' + q.id);
+  if (q.type === 'text' || q.type === 'textarea') {
+    var input = box.querySelector('.text-input');
+    answers[q.id] = input ? input.value.trim() : '';
+    return;
+  }
   var vals = [];
   box.querySelectorAll('input:checked').forEach(function (c) {
     var v = c.value;
@@ -436,15 +475,29 @@ function validateStep(stepId) {
     var box   = document.getElementById('qbox-' + q.id);
     errEl.textContent = '';
     box.classList.remove('error');
-    if (!q.required) return;
     collectQ(q);
-    var ans      = answers[q.id];
-    var answered = Array.isArray(ans) ? ans.length > 0 : !!ans;
-    if (!answered) {
-      errEl.textContent = 'We really need this one — please pick an option.';
-      box.classList.add('error');
-      if (!firstErr) firstErr = box;
-      valid = false;
+    var ans = answers[q.id];
+
+    if (q.required) {
+      var answered = Array.isArray(ans) ? ans.length > 0 : !!ans;
+      if (!answered) {
+        errEl.textContent = (q.type === 'text' || q.type === 'textarea')
+          ? 'We really need this one — please fill it in.'
+          : 'We really need this one — please pick an option.';
+        box.classList.add('error');
+        if (!firstErr) firstErr = box;
+        valid = false;
+        return;
+      }
+    }
+
+    if (q.pattern && ans) {
+      if (!new RegExp(q.pattern, 'i').test(ans)) {
+        errEl.textContent = q.patternError || 'That doesn\'t look right — please check it.';
+        box.classList.add('error');
+        if (!firstErr) firstErr = box;
+        valid = false;
+      }
     }
   });
   if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
