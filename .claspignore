@@ -1,0 +1,4 @@
+# Push only the backend to Apps Script; leave the static site alone.
+**/**
+!Code.gs
+!appsscript.json

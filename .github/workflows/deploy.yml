@@ -1,0 +1,47 @@
+name: Deploy on merge to main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow one concurrent deploy; cancel in-progress runs on a new push.
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  # 1. Static survey site -> GitHub Pages
+  pages:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .              # site files live at repo root
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  # 2. Apps Script backend (Code.gs) -> Google via clasp
+  appscript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g @google/clasp@2.4.2
+      - name: Write clasp auth
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+      - name: Push + deploy
+        run: |
+          clasp push -f
+          # Update the SAME deployment so the /exec URL never changes.
+          clasp deploy -i "${{ secrets.APPSCRIPT_DEPLOYMENT_ID }}" -d "CI $(date -u +%FT%TZ)"
